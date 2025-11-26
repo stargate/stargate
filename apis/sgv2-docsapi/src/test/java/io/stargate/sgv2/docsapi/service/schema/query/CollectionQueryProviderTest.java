@@ -70,15 +70,16 @@ class CollectionQueryProviderTest {
     }
   }
 
-  @Nested
+  @QuarkusTest
   @TestProfile(CreateCollectionQueryWithNumericBooleans.Profile.class)
-  class CreateCollectionQueryWithNumericBooleans {
+  public static class CreateCollectionQueryWithNumericBooleans {
+
+    @Inject CollectionQueryProvider queryProvider;
 
     public static class Profile extends SaiEnabledTestProfile {
 
       @Override
       public Map<String, String> getConfigOverrides() {
-        // adapt consistency, depth and column name(s)
         return ImmutableMap.<String, String>builder()
             .putAll(super.getConfigOverrides())
             .put("stargate.document.max-depth", "4")
@@ -155,9 +156,11 @@ class CollectionQueryProviderTest {
     }
   }
 
-  @Nested
+  @QuarkusTest
   @TestProfile(SaiEnabledTestProfile.class)
-  class CreateCollectionIndexQueriesWithSaiEnabled {
+  public static class CreateCollectionIndexQueriesWithSaiEnabled {
+
+    @Inject CollectionQueryProvider queryProvider;
 
     @Test
     public void happyPath() {

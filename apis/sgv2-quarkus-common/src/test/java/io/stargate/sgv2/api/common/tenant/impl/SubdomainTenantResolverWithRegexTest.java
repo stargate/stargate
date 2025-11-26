@@ -18,14 +18,17 @@
 package io.stargate.sgv2.api.common.tenant.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -56,16 +59,16 @@ class SubdomainTenantResolverWithRegexTest {
   @Inject // enabled by default
   Instance<TenantResolver> tenantResolver;
 
-  @InjectMock(returnsDeepMocks = true)
-  RoutingContext routingContext;
+  @InjectMock RoutingContext routingContext;
 
   @Nested
   class Resolve {
 
     @Test
     public void happyPath() {
-      when(routingContext.request().host())
-          .thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
@@ -74,8 +77,9 @@ class SubdomainTenantResolverWithRegexTest {
 
     @Test
     public void tooShort() {
-      when(routingContext.request().host())
-          .thenReturn("09cedbf6-9086-42bb-93ac-e497682227b.domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("09cedbf6-9086-42bb-93ac-e497682227b.domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
@@ -84,7 +88,9 @@ class SubdomainTenantResolverWithRegexTest {
 
     @Test
     public void regexNotMatched() {
-      when(routingContext.request().host()).thenReturn("xyz.domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      lenient().when(request.host()).thenReturn("xyz.domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 

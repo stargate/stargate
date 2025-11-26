@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate - V2 API Parent pom</name>
-  <version>2.0.44-SNAPSHOT</version>
+  <version>2.0.45-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -61,8 +61,8 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <!-- 28-Aug-2025, tatu: [stargate#3124] Use LTS version (3.15.x; next 3.20.x) -->
-    <!-- 18-Nov-2025, tatu: [stargate#3158] Use LTS version (3.20.x; next 3.27.x) -->
-    <quarkus.platform.version>3.20.3</quarkus.platform.version>
+    <!-- 18-Nov-2025, tatu: [stargate#3162] Use LTS version (3.27.x; latest LTS) -->
+    <quarkus.platform.version>3.27.1</quarkus.platform.version>
     <!-- Cassandra dependencies -->
     <driver.version>4.17.0</driver.version>
     <!-- Testing -->
