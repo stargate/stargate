@@ -74,15 +74,10 @@ class ExpressionParserTest {
 
   @BeforeEach
   public void setUp() {
-    // Set up default stub for maxArrayLength to avoid returning 0 (default int value)
-    // Tests that need different values can override this with explicit Mockito.when() calls
-    when(documentProperties.maxArrayLength()).thenReturn(100000);
-
     // Set up tableProperties mock to avoid NPE when accessing nested properties
     // Create a regular Mockito mock since DocumentTableProperties is not a CDI bean
     documentTableProperties = Mockito.mock(DocumentTableProperties.class);
     when(documentProperties.tableProperties()).thenReturn(documentTableProperties);
-    when(documentTableProperties.stringValueColumnName()).thenReturn("text_value");
   }
 
   @Nested
