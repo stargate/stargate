@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.service.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
@@ -74,15 +74,15 @@ class ExpressionParserTest {
 
   @BeforeEach
   public void setUp() {
-    // Set up default lenient stub for maxArrayLength to avoid returning 0 (default int value)
+    // Set up default stub for maxArrayLength to avoid returning 0 (default int value)
     // Tests that need different values can override this with explicit Mockito.when() calls
-    lenient().when(documentProperties.maxArrayLength()).thenReturn(100000);
+    when(documentProperties.maxArrayLength()).thenReturn(100000);
 
     // Set up tableProperties mock to avoid NPE when accessing nested properties
     // Create a regular Mockito mock since DocumentTableProperties is not a CDI bean
     documentTableProperties = Mockito.mock(DocumentTableProperties.class);
-    lenient().when(documentProperties.tableProperties()).thenReturn(documentTableProperties);
-    lenient().when(documentTableProperties.stringValueColumnName()).thenReturn("text_value");
+    when(documentProperties.tableProperties()).thenReturn(documentTableProperties);
+    when(documentTableProperties.stringValueColumnName()).thenReturn("text_value");
   }
 
   @Nested
@@ -491,7 +491,7 @@ class ExpressionParserTest {
 
     @Test
     public void singleFieldArrayIndex() throws Exception {
-      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
+      when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
@@ -526,7 +526,7 @@ class ExpressionParserTest {
 
     @Test
     public void singleFieldArraySplitIndex() throws Exception {
-      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
+      when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
