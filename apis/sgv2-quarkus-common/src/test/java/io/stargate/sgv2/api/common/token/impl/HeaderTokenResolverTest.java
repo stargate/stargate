@@ -18,7 +18,6 @@
 package io.stargate.sgv2.api.common.token.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,7 +74,7 @@ class HeaderTokenResolverTest {
     @Test
     public void noHeader() {
       HttpServerRequest request = mock(HttpServerRequest.class);
-      lenient().when(request.getHeader("x-some-header")).thenReturn(null);
+      when(request.getHeader("x-some-header")).thenReturn(null);
       when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tokenResolver.get().resolve(routingContext, null);

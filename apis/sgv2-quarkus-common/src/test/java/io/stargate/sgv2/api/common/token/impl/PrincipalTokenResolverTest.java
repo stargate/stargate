@@ -17,7 +17,6 @@
 
 package io.stargate.sgv2.api.common.token.impl;
 
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +58,7 @@ class PrincipalTokenResolverTest {
 
     @Test
     public void noPrincipal() {
-      lenient().when(securityContext.getUserPrincipal()).thenReturn(null);
+      when(securityContext.getUserPrincipal()).thenReturn(null);
 
       Optional<String> result = tokenResolver.get().resolve(null, securityContext);
 

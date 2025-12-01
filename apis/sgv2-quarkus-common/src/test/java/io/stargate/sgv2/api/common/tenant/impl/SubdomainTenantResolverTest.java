@@ -18,7 +18,6 @@
 package io.stargate.sgv2.api.common.tenant.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,7 +96,7 @@ class SubdomainTenantResolverTest {
     @Test
     public void notDomain() {
       HttpServerRequest request = mock(HttpServerRequest.class);
-      lenient().when(request.host()).thenReturn("localhost");
+      when(request.host()).thenReturn("localhost");
       when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
