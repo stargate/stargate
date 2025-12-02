@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.service.query;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.Mockito.when;
 
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
@@ -26,15 +27,16 @@ import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.GenericCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.NumberCondition;
@@ -51,6 +53,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -65,8 +68,17 @@ class ExpressionParserTest {
 
   @Inject ObjectMapper mapper;
 
-  @InjectMock(returnsDeepMocks = true)
-  DocumentProperties documentProperties;
+  @InjectMock DocumentProperties documentProperties;
+
+  private DocumentTableProperties documentTableProperties;
+
+  @BeforeEach
+  public void setUp() {
+    // Set up tableProperties mock to avoid NPE when accessing nested properties
+    // Create a regular Mockito mock since DocumentTableProperties is not a CDI bean
+    documentTableProperties = Mockito.mock(DocumentTableProperties.class);
+    when(documentProperties.tableProperties()).thenReturn(documentTableProperties);
+  }
 
   @Nested
   class ConstructFilterExpression {
@@ -474,7 +486,7 @@ class ExpressionParserTest {
 
     @Test
     public void singleFieldArrayIndex() throws Exception {
-      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
+      when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
@@ -509,7 +521,7 @@ class ExpressionParserTest {
 
     @Test
     public void singleFieldArraySplitIndex() throws Exception {
-      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
+      when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
