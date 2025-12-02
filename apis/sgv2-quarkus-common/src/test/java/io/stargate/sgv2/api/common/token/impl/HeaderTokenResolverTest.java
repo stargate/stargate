@@ -18,14 +18,16 @@
 package io.stargate.sgv2.api.common.token.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -52,8 +54,7 @@ class HeaderTokenResolverTest {
 
   @Inject Instance<CassandraTokenResolver> tokenResolver;
 
-  @InjectMock(returnsDeepMocks = true)
-  RoutingContext routingContext;
+  @InjectMock RoutingContext routingContext;
 
   @Nested
   class Resolve {
@@ -61,7 +62,9 @@ class HeaderTokenResolverTest {
     @Test
     public void happyPath() {
       String token = RandomStringUtils.randomAlphanumeric(16);
-      when(routingContext.request().getHeader("x-some-header")).thenReturn(token);
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.getHeader("x-some-header")).thenReturn(token);
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tokenResolver.get().resolve(routingContext, null);
 
@@ -70,7 +73,9 @@ class HeaderTokenResolverTest {
 
     @Test
     public void noHeader() {
-      when(routingContext.request().getHeader("x-some-header")).thenReturn(null);
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.getHeader("x-some-header")).thenReturn(null);
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tokenResolver.get().resolve(routingContext, null);
 

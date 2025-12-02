@@ -18,14 +18,16 @@
 package io.stargate.sgv2.api.common.tenant.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -53,15 +55,16 @@ class SubdomainTenantResolverTest {
   @Inject // enabled by default
   Instance<TenantResolver> tenantResolver;
 
-  @InjectMock(returnsDeepMocks = true)
-  RoutingContext routingContext;
+  @InjectMock RoutingContext routingContext;
 
   @Nested
   class Resolve {
 
     @Test
     public void happyPath() {
-      when(routingContext.request().host()).thenReturn("xyz.domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("xyz.domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
@@ -70,7 +73,9 @@ class SubdomainTenantResolverTest {
 
     @Test
     public void topLevelDomain() {
-      when(routingContext.request().host()).thenReturn("domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
@@ -79,8 +84,9 @@ class SubdomainTenantResolverTest {
 
     @Test
     public void maxLengthEnsured() {
-      when(routingContext.request().host())
-          .thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
@@ -89,7 +95,9 @@ class SubdomainTenantResolverTest {
 
     @Test
     public void notDomain() {
-      when(routingContext.request().host()).thenReturn("localhost");
+      HttpServerRequest request = mock(HttpServerRequest.class);
+      when(request.host()).thenReturn("localhost");
+      when(routingContext.request()).thenReturn(request);
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
