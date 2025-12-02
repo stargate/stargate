@@ -17,14 +17,16 @@
 
 package io.stargate.sgv2.api.common.token.impl;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.SecurityContext;
+import java.security.Principal;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
@@ -37,8 +39,7 @@ class PrincipalTokenResolverTest {
   @Inject // enabled by default
   Instance<CassandraTokenResolver> tokenResolver;
 
-  @InjectMock(returnsDeepMocks = true)
-  SecurityContext securityContext;
+  @InjectMock SecurityContext securityContext;
 
   @Nested
   class Resolve {
@@ -46,7 +47,9 @@ class PrincipalTokenResolverTest {
     @Test
     public void happyPath() {
       String token = RandomStringUtils.randomAlphanumeric(16);
-      when(securityContext.getUserPrincipal().getName()).thenReturn(token);
+      Principal principal = mock(Principal.class);
+      when(principal.getName()).thenReturn(token);
+      when(securityContext.getUserPrincipal()).thenReturn(principal);
 
       Optional<String> result = tokenResolver.get().resolve(null, securityContext);
 

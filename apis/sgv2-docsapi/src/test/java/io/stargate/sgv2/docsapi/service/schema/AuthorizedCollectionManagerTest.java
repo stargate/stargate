@@ -24,9 +24,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import io.grpc.stub.StreamObserver;
 import io.quarkus.grpc.GrpcClient;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
