@@ -126,10 +126,10 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-codec</artifactId>
-      <!-- Updated on DSE 6.8.59:
+      <!-- Updated on DSE 6.8.61:
 	 (see https://github.com/datastax/release-notes/blob/master/DSE_6.8_Release_Notes.md)
         -->
-      <version>4.1.119.1.dse</version>
+      <version>4.1.128.1.dse</version>
     </dependency>
     <!-- 3rd party dependencies -->
     <dependency>
