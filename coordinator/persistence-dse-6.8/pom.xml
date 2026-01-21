@@ -37,6 +37,14 @@
         <artifactId>guava</artifactId>
         <version>32.0.1-jre</version>
       </dependency>
+      <!-- 21-Jan-2026, tatu: [stargate#3175] need to override to
+           address https://nvd.nist.gov/vuln/detail/CVE-2026-21452
+        -->
+      <dependency>
+        <groupId>org.msgpack</groupId>
+        <artifactId>msgpack-core</artifactId>
+        <version>0.9.11</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <dependencies>
