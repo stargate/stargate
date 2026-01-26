@@ -98,7 +98,7 @@
     <!-- 01-Oct-2024, tatu: Beyond mockito 5.2.0 needs to remove mockito-inline ref
       -->
     <mockito.version>5.11.0</mockito.version>
-    <assertj.version>3.24.2</assertj.version>
+    <assertj.version>3.27.7</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
   </properties>
   <dependencies>
