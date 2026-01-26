@@ -94,7 +94,7 @@
     <jacoco.version>0.8.12</jacoco.version>
     <junit.version>5.8.2</junit.version>
     <mockito.version>3.12.4</mockito.version>
-    <assertj.version>3.21.0</assertj.version>
+    <assertj.version>3.27.7</assertj.version>
     <awaitility.version>4.1.1</awaitility.version>
   </properties>
   <dependencies>
