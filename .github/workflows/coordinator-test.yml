@@ -87,8 +87,7 @@ jobs:
       #  all unit tests should run without storage
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install ccm
+          python -m pip install --upgrade pip "setuptools<82" ccm
           ccm list
 
       - name: Run unit tests
@@ -163,8 +162,7 @@ jobs:
 
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip setuptools
-          python -m pip install ccm
+          python -m pip install --upgrade pip "setuptools<82" ccm
           ccm list
 
       - name: Run Integration Tests
