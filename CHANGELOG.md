@@ -4,6 +4,7 @@
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.0.44)
 
+
 **Merged pull requests:**
 
 - Fix \#3154: call correct methods for REST "getKeyspaces\(\)", "getTables\(\) [\#3160](https://github.com/stargate/stargate/pull/3160) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
