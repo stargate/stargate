@@ -113,6 +113,15 @@
           <groupId>dnsjava</groupId>
           <artifactId>dnsjava</artifactId>
         </exclusion>
+        <!-- jackson-core/mapper-asl 1.9.13.1.dse no longer available from DataStax Artifactory -->
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-mapper-asl</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
     <dependency>
@@ -123,6 +132,15 @@
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
           <artifactId>sjk-core</artifactId>
+        </exclusion>
+        <!-- jackson-core/mapper-asl 1.9.13.1.dse no longer available from DataStax Artifactory -->
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-core-asl</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.jackson</groupId>
+          <artifactId>jackson-mapper-asl</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
