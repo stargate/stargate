@@ -121,23 +121,27 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
   private static Queue<Integer> initJmxPorts(int maxNodeCount) {
     Queue<Integer> ports = new ConcurrentLinkedQueue<>();
+    List<ServerSocket> sockets = new ArrayList<>();
 
     try {
-      List<ServerSocket> sockets = new ArrayList<>();
       for (int i = 0; i < maxNodeCount; i++) {
         ServerSocket socket = new ServerSocket(0);
         sockets.add(socket);
         ports.add(socket.getLocalPort());
       }
-      for (ServerSocket socket : sockets) {
-        socket.close();
-      }
+      return ports;
     } catch (IOException e) {
       LOG.error("Unable to preallocate JMX ports", e);
       throw new UncheckedIOException(e);
+    } finally {
+      for (ServerSocket socket : sockets) {
+        try {
+          socket.close();
+        } catch (IOException e) {
+          LOG.warn("Failed to close preallocated ServerSocket", e);
+        }
+      }
     }
-
-    return ports;
   }
 
   public StargateExtension() {

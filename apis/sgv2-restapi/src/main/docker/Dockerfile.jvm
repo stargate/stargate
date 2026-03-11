@@ -77,10 +77,12 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
-FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.21
+### Latest as of 2026-03-11:
+###   https://catalog.redhat.com/en/software/containers/ubi8/openjdk-17-runtime/618bdc5f843af1624c4e4ba8
+### updated by tatu.saloranta@ibm.com
+FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.23-4.1771813015
 
 ENV LANGUAGE='en_US:en'
-
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
 COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/
