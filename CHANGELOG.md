@@ -1,5 +1,19 @@
 # Changelog
 
+## [v2.0.45](https://github.com/stargate/stargate/tree/v2.0.45) (2026-03-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-34...v2.0.45)
+
+**Merged pull requests:**
+
+- Bump org.assertj:assertj-core from 3.22.0 to 3.27.7 in /apis [\#3180](https://github.com/stargate/stargate/pull/3180) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump org.assertj:assertj-core from 3.21.0 to 3.27.7 in /coordinator [\#3179](https://github.com/stargate/stargate/pull/3179) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#3174: update to DSE 6.8.62 [\#3177](https://github.com/stargate/stargate/pull/3177) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3175: add `org.msgpack:msgpack-core` 0.9.11 override for DSE backend [\#3176](https://github.com/stargate/stargate/pull/3176) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3157: update DSE dep to 6.8.61 \(from 6.8.59\) [\#3173](https://github.com/stargate/stargate/pull/3173) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3171 \(`commons-beanutils` dep upgrade via `commons-validator`\) [\#3172](https://github.com/stargate/stargate/pull/3172) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3162: upgrade to Quarkus 3.27.0 \(LTS, latest\) [\#3163](https://github.com/stargate/stargate/pull/3163) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.44](https://github.com/stargate/stargate/tree/v2.0.44) (2025-11-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.0.44)
