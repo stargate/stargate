@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.0.47](https://github.com/stargate/stargate/tree/v2.0.47) (2026-03-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.46...v2.0.47)
+
+**Merged pull requests:**
+
+- Fix cosign issue with CI [\#3193](https://github.com/stargate/stargate/pull/3193) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3192](https://github.com/stargate/stargate/pull/3192) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.46](https://github.com/stargate/stargate/tree/v2.0.46) (2026-03-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.45...v2.0.46)
