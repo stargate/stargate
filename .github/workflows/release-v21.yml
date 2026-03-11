@@ -477,7 +477,7 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@main
         with:
-          cosign-release: ${COSIGN_VERSION}
+          cosign-release: ${{ env.COSIGN_VERSION }}
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
