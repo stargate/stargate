@@ -6,32 +6,13 @@
 
 **Merged pull requests:**
 
-- Bump docker/setup-qemu-action from 3 to 4 [\#3186](https://github.com/stargate/stargate/pull/3186) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump docker/login-action from 3 to 4 [\#3185](https://github.com/stargate/stargate/pull/3185) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump docker/setup-buildx-action from 3 to 4 [\#3184](https://github.com/stargate/stargate/pull/3184) ([dependabot[bot]](https://github.com/apps/dependabot))
-- CI fixes \(setuptools version pin\) [\#3183](https://github.com/stargate/stargate/pull/3183) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bump actions/upload-artifact from 6 to 7 [\#3182](https://github.com/stargate/stargate/pull/3182) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump aws-actions/configure-aws-credentials from 5 to 6 [\#3181](https://github.com/stargate/stargate/pull/3181) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump org.assertj:assertj-core from 3.22.0 to 3.27.7 in /apis [\#3180](https://github.com/stargate/stargate/pull/3180) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump org.assertj:assertj-core from 3.21.0 to 3.27.7 in /coordinator [\#3179](https://github.com/stargate/stargate/pull/3179) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Fix \#3174: update to DSE 6.8.62 [\#3177](https://github.com/stargate/stargate/pull/3177) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#3175: add `org.msgpack:msgpack-core` 0.9.11 override for DSE backend [\#3176](https://github.com/stargate/stargate/pull/3176) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#3157: update DSE dep to 6.8.61 \(from 6.8.59\) [\#3173](https://github.com/stargate/stargate/pull/3173) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#3171 \(`commons-beanutils` dep upgrade via `commons-validator`\) [\#3172](https://github.com/stargate/stargate/pull/3172) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bump peter-evans/create-pull-request from 7 to 8 [\#3170](https://github.com/stargate/stargate/pull/3170) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump actions/cache from 4 to 5 [\#3169](https://github.com/stargate/stargate/pull/3169) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump actions/upload-artifact from 5 to 6 [\#3168](https://github.com/stargate/stargate/pull/3168) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bump actions/checkout from 5 to 6 [\#3166](https://github.com/stargate/stargate/pull/3166) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bumping version for next v2.0 release [\#3164](https://github.com/stargate/stargate/pull/3164) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Fix \#3162: upgrade to Quarkus 3.27.0 \(LTS, latest\) [\#3163](https://github.com/stargate/stargate/pull/3163) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
-## [v2.1.0-BETA-34](https://github.com/stargate/stargate/tree/v2.1.0-BETA-34) (2025-11-18)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.44...v2.1.0-BETA-34)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.1 release [\#3156](https://github.com/stargate/stargate/pull/3156) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.44](https://github.com/stargate/stargate/tree/v2.0.44) (2025-11-18)
 
