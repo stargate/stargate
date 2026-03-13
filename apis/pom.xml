@@ -6,7 +6,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate - V2 API Parent pom</name>
-  <version>2.0.48-SNAPSHOT</version>
+  <version>2.0.49-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
