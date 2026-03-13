@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.0.48](https://github.com/stargate/stargate/tree/v2.0.48) (2026-03-13)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-35...v2.0.48)
+
+**Merged pull requests:**
+
+- Fix CI warning wrt NodeJS 20 deprecation [\#3196](https://github.com/stargate/stargate/pull/3196) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.1.0-BETA-35](https://github.com/stargate/stargate/tree/v2.1.0-BETA-35) (2026-03-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.47...v2.1.0-BETA-35)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.0 release [\#3194](https://github.com/stargate/stargate/pull/3194) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merge \#3163 changes from main \(v2.0\) to v2.1 [\#3167](https://github.com/stargate/stargate/pull/3167) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3165](https://github.com/stargate/stargate/pull/3165) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.47](https://github.com/stargate/stargate/tree/v2.0.47) (2026-03-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.46...v2.0.47)
