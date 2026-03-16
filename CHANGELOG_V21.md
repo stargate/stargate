@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.1.0-BETA-35](https://github.com/stargate/stargate/tree/v2.1.0-BETA-35) (2026-03-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.47...v2.1.0-BETA-35)
+
+**Merged pull requests:**
+
+- Merge \#3163 changes from main \(v2.0\) to v2.1 [\#3167](https://github.com/stargate/stargate/pull/3167) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-BETA-34](https://github.com/stargate/stargate/tree/v2.1.0-BETA-34) (2025-11-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-33...v2.1.0-BETA-34)
