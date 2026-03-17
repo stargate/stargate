@@ -27,6 +27,10 @@
       <id>artifactory-releases</id>
       <url>https://repo.datastax.com/datastax-releases-local</url>
     </repository>
+    <repository>
+      <id>artifactory-public</id>
+      <url>https://repo.datastax.com/artifactory/public-repos</url>
+    </repository>
   </repositories>
   <dependencyManagement>
     <dependencies>
