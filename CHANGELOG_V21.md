@@ -6,26 +6,6 @@
 
 **Merged pull requests:**
 
-- Bumping version for next v2.1 release [\#3195](https://github.com/stargate/stargate/pull/3195) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.49](https://github.com/stargate/stargate/tree/v2.0.49) (2026-03-18)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.48...v2.0.49)
-
-**Merged pull requests:**
-
-- Add override for `sqlite-libs` to resolve CVE-2025-6965 [\#3199](https://github.com/stargate/stargate/pull/3199) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#3197](https://github.com/stargate/stargate/pull/3197) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Minor fix for CI for stargate/main \(wrt public Maven repo for dse-specific jackson jars\) [\#3188](https://github.com/stargate/stargate/pull/3188) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
-## [v2.0.48](https://github.com/stargate/stargate/tree/v2.0.48) (2026-03-13)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-35...v2.0.48)
-
-**Merged pull requests:**
-
-- Fix CI warning wrt NodeJS 20 deprecation [\#3196](https://github.com/stargate/stargate/pull/3196) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
 ## [v2.1.0-BETA-35](https://github.com/stargate/stargate/tree/v2.1.0-BETA-35) (2026-03-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.47...v2.1.0-BETA-35)
