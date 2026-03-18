@@ -82,6 +82,11 @@
 ### updated by tatu.saloranta@ibm.com
 FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.23-4.1771813015
 
+# CVE-2025-6965: update sqlite-libs to patched version (RHSA-2025:12010)
+USER 0
+RUN microdnf update sqlite-libs -y && microdnf clean all
+USER 185
+
 ENV LANGUAGE='en_US:en'
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
