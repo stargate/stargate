@@ -89,12 +89,31 @@ jobs:
         run: |
           python -m pip install --upgrade pip "setuptools<82"
           python -m pip install ccm
+          # Wrap ccm to inject DSE credentials for DSE download
+          REAL_CCM=$(which ccm)
+          mv "$REAL_CCM" "${REAL_CCM}.real"
+          cat > "$REAL_CCM" << 'WRAPPER'
+          #!/bin/bash
+          SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+          if [[ "$1" == "create" ]] && [[ " $* " == *" --dse "* ]] && [[ -n "$DSE_USERNAME" ]] && [[ -n "$DSE_PASSWORD" ]]; then
+              exec "${SELF_DIR}/ccm.real" "$@" --dse-username="$DSE_USERNAME" --dse-password="$DSE_PASSWORD"
+          else
+              exec "${SELF_DIR}/ccm.real" "$@"
+          fi
+          WRAPPER
+          chmod +x "$REAL_CCM"
           ccm list
+        env:
+          DSE_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
       - name: Run unit tests
         run: |
           cd coordinator/
           ./mvnw -B -ntp clean test -P dse
+        env:
+          DSE_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
   integration-test:
     name: Integration tests
@@ -161,10 +180,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip "setuptools<82"
           python -m pip install ccm
+          # Wrap ccm to inject DSE credentials for DSE download
+          REAL_CCM=$(which ccm)
+          mv "$REAL_CCM" "${REAL_CCM}.real"
+          cat > "$REAL_CCM" << 'WRAPPER'
+          #!/bin/bash
+          SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+          if [[ "$1" == "create" ]] && [[ " $* " == *" --dse "* ]] && [[ -n "$DSE_USERNAME" ]] && [[ -n "$DSE_PASSWORD" ]]; then
+              exec "${SELF_DIR}/ccm.real" "$@" --dse-username="$DSE_USERNAME" --dse-password="$DSE_PASSWORD"
+          else
+              exec "${SELF_DIR}/ccm.real" "$@"
+          fi
+          WRAPPER
+          chmod +x "$REAL_CCM"
           ccm list
+        env:
+          DSE_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
 
       - name: Run Integration Tests
         run: |
           cd coordinator/
           ./mvnw -B -ntp ${{ matrix.build-profile }} clean install -DskipTests
           ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests
+        env:
+          DSE_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          DSE_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
