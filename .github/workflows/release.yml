@@ -129,17 +129,17 @@ jobs:
 
       - name: Setup Maven
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_CENTRAL_USERNAME: ${{ secrets.SONATYPE_CENTRAL_USERNAME }}
+          SONATYPE_CENTRAL_TOKEN: ${{ secrets.SONATYPE_CENTRAL_TOKEN }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>ossrh</id>
-                <username>${OSSRH_USERNAME}</username>
-                <password>${OSSRH_TOKEN}</password>
+                <id>central</id>
+                <username>${SONATYPE_CENTRAL_USERNAME}</username>
+                <password>${SONATYPE_CENTRAL_TOKEN}</password>
               </server>
               <server>
                 <id>artifactory-snapshots</id>
@@ -159,8 +159,10 @@ jobs:
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
 
+      # continue on error as sometimes deploy works even if an error is reported and we want to try next step as well
       - name: Publish package
         if: ${{ !inputs.skipPublish }}
+        continue-on-error: true
         run: |
           cd coordinator/
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
