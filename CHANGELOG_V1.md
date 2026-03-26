@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.91...HEAD)
+
+**Closed issues:**
+
+- Update Stargate v1 to DSE 6.8.58 [\#3203](https://github.com/stargate/stargate/issues/3203)
+
+## [v1.0.91](https://github.com/stargate/stargate/tree/v1.0.91) (2026-03-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-36...v1.0.91)
+
+**Merged pull requests:**
+
+- Fix Release workflow wrt Maven publish [\#3208](https://github.com/stargate/stargate/pull/3208) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to reproduce CI fail [\#3206](https://github.com/stargate/stargate/pull/3206) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3203: update DSE dep to 6.8.58 [\#3204](https://github.com/stargate/stargate/pull/3204) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#3073](https://github.com/stargate/stargate/pull/3073) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.90](https://github.com/stargate/stargate/tree/v1.0.90) (2025-03-31)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.89...v1.0.90)
