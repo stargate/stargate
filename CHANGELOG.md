@@ -1,5 +1,32 @@
 # Changelog
 
+## [v2.0.50](https://github.com/stargate/stargate/tree/v2.0.50) (2026-04-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-37...v2.0.50)
+
+**Merged pull requests:**
+
+- Fix \#3198: update DSE to 6.8.63 \(from 6.8.62\) [\#3217](https://github.com/stargate/stargate/pull/3217) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update org.lz4 dep to resolve CVE for C2 [\#3216](https://github.com/stargate/stargate/pull/3216) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3201](https://github.com/stargate/stargate/pull/3201) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-37](https://github.com/stargate/stargate/tree/v2.1.0-BETA-37) (2026-04-09)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.91...v2.1.0-BETA-37)
+
+**Merged pull requests:**
+
+- Update logback-core to 1.5.32 \(from 1.5.19\) [\#3214](https://github.com/stargate/stargate/pull/3214) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3202](https://github.com/stargate/stargate/pull/3202) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-36](https://github.com/stargate/stargate/tree/v2.1.0-BETA-36) (2026-03-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.49...v2.1.0-BETA-36)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3195](https://github.com/stargate/stargate/pull/3195) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.49](https://github.com/stargate/stargate/tree/v2.0.49) (2026-03-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.48...v2.0.49)
