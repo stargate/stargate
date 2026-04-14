@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.1.0-BETA-38](https://github.com/stargate/stargate/tree/v2.1.0-BETA-38) (2026-04-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.50...v2.1.0-BETA-38)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3215](https://github.com/stargate/stargate/pull/3215) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.50](https://github.com/stargate/stargate/tree/v2.0.50) (2026-04-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-37...v2.0.50)
+
+**Merged pull requests:**
+
+- Fix \#3198: update DSE to 6.8.63 \(from 6.8.62\) [\#3217](https://github.com/stargate/stargate/pull/3217) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update org.lz4 dep to resolve CVE for C2 [\#3216](https://github.com/stargate/stargate/pull/3216) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3201](https://github.com/stargate/stargate/pull/3201) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-37](https://github.com/stargate/stargate/tree/v2.1.0-BETA-37) (2026-04-09)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.91...v2.1.0-BETA-37)
