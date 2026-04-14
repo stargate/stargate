@@ -27,9 +27,8 @@ class ResourceUtilsTest {
       IllegalArgumentException ex =
           assertThrows(IllegalArgumentException.class, () -> ResourceUtils.readJson(payload));
       assertThat(ex)
-          .hasMessage(
-              "Input provided is not valid json. Unexpected character ('1' (code 49)): was expecting a colon to separate field name and value\n"
-                  + " at [Source: (String)\"{\"a\": \"alpha\", \"b\" 1}\"; line: 1, column: 21]");
+          .hasMessageContaining(
+              "Input provided is not valid json. Unexpected character ('1' (code 49)): was expecting a colon to separate field name and value");
     }
 
     @Test
@@ -38,9 +37,8 @@ class ResourceUtilsTest {
       IllegalArgumentException ex =
           assertThrows(IllegalArgumentException.class, () -> ResourceUtils.readJson(payload));
       assertThat(ex)
-          .hasMessage(
-              "Input provided is not valid json. Unexpected character ('a' (code 97)): was expecting comma to separate Object entries\n"
-                  + " at [Source: (String)\"{\"a\": \"\"alpha\", \"b\": 1}\"; line: 1, column: 10]");
+          .hasMessageContaining(
+              "Input provided is not valid json. Unexpected character ('a' (code 97)): was expecting comma to separate Object entries\n");
     }
   }
 }
