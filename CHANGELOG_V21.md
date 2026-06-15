@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.1.0-BETA-39](https://github.com/stargate/stargate/tree/v2.1.0-BETA-39) (2026-04-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-38...v2.1.0-BETA-39)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3220](https://github.com/stargate/stargate/pull/3220) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-38](https://github.com/stargate/stargate/tree/v2.1.0-BETA-38) (2026-04-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.50...v2.1.0-BETA-38)
