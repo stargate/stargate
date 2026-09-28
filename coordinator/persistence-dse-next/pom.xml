@@ -43,14 +43,32 @@
     <repository>
       <id>artifactory-snapshots</id>
       <url>https://repo.datastax.com/datastax-snapshots-local</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </repository>
     <repository>
       <id>artifactory-releases</id>
       <url>https://repo.datastax.com/datastax-releases-local</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
     <repository>
       <id>artifactory-dse</id>
       <url>https://repo.datastax.com/artifactory/dse/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
     </repository>
   </repositories>
   <dependencies>
