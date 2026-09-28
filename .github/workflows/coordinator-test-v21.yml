@@ -172,6 +172,16 @@ jobs:
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
               </server>
+              <server>
+                <id>artifactory-public</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
             </servers>
           </settings>
           EOF
