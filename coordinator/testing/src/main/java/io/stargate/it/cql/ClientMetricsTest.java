@@ -107,7 +107,7 @@ public abstract class ClientMetricsTest extends BaseIntegrationTest {
     // then
     String requestProcessedTotal =
         String.format(
-            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",%s=\"%s\",}",
+            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",%s=\"%s\"}",
             FixedClientInfoTagProvider.TAG_KEY_DRIVER_NAME,
             FixedClientInfoTagProvider.TAG_VALUE_DRIVER_NAME,
             FixedClientInfoTagProvider.TAG_KEY_DRIVER_VERSION,
@@ -136,7 +136,7 @@ public abstract class ClientMetricsTest extends BaseIntegrationTest {
 
               String connectedNativeClientsTotal =
                   String.format(
-                      "cql_org_apache_cassandra_metrics_Client_connectedNativeClients{%s=\"%s\",}",
+                      "cql_org_apache_cassandra_metrics_Client_connectedNativeClients{%s=\"%s\"}",
                       FixedClientInfoTagProvider.TAG_KEY, FixedClientInfoTagProvider.TAG_VALUE);
               Optional<Double> connectedNativeClients =
                   getCqlMetric(body, connectedNativeClientsTotal);
