@@ -246,7 +246,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
 
   private Optional<Double> getGrpcMetric(String body, String metric) {
     String regex =
-        String.format("(%s\\s*)(\\d+.\\d+)", metric)
+        String.format("(%s\\s*)(\\d+(?:\\.\\d+)?)", metric)
             .replace(",", "\\,")
             .replace("{", "\\{")
             .replace("}", "\\}");

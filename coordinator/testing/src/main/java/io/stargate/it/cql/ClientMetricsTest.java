@@ -222,7 +222,7 @@ public abstract class ClientMetricsTest extends BaseIntegrationTest {
 
   private Optional<Double> getCqlMetric(String body, String metric) {
     String regex =
-        String.format("(%s\\s*)(\\d+.\\d+)", metric)
+        String.format("(%s\\s*)(\\d+(?:\\.\\d+)?)", metric)
             .replace(",", "\\,")
             .replace("{", "\\{")
             .replace("}", "\\}");
