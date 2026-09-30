@@ -33,9 +33,9 @@ class MetricsImplTest {
 
     String scrape = metrics.scrape();
     assertThat(scrape)
-        .contains("dropwizard 1.0")
-        .contains("prefix_dropwizard 1.0")
+        .contains("dropwizard_total 1.0")
+        .contains("prefix_dropwizard_total 1.0")
         .contains("micrometer_total 2.0")
-        .contains("micrometer_tags_total{tag=\"that\",} 3.0");
+        .contains("micrometer_tags_total{tag=\"that\"} 3.0");
   }
 }

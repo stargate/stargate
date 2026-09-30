@@ -47,7 +47,7 @@
     </dependency>
     <dependency>
       <groupId>io.prometheus</groupId>
-      <artifactId>simpleclient_dropwizard</artifactId>
+      <artifactId>prometheus-metrics-instrumentation-dropwizard</artifactId>
     </dependency>
     <!-- Test dependencies -->
     <dependency>

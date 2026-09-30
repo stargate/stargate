@@ -203,6 +203,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
         <executions>
           <execution>
             <id>fix-sjk-core</id>
@@ -211,7 +212,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
-              <tasks>
+              <target>
                 <!-- Remove root package classes -->
                 <delete>
                   <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
@@ -220,7 +221,7 @@
                   <fileset dir="${project.build.directory}/sjk-core"/>
                 </jar>
                 <delete dir="${project.build.directory}/sjk-core"/>
-              </tasks>
+              </target>
             </configuration>
           </execution>
         </executions>

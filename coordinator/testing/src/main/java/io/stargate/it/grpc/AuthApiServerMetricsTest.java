@@ -106,9 +106,9 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
                               .contains("statusCode=\"OK\""));
 
               String responsesTotal =
-                  "grpc_server_responses_sent_messages_total{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\",}";
+                  "grpc_server_responses_sent_messages_total{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\"}";
               String requestsTotal =
-                  "grpc_server_requests_received_messages_total{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\",}";
+                  "grpc_server_requests_received_messages_total{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\"}";
 
               assertThat(getGrpcMetric(result, responsesTotal))
                   .hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
@@ -176,9 +176,9 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
                               .contains("statusCode=\"OK\""));
 
               String responsesTotal =
-                  "grpc_server_responses_sent_messages_total{method=\"ExecuteBatch\",methodType=\"UNARY\",service=\"stargate.Stargate\",}";
+                  "grpc_server_responses_sent_messages_total{method=\"ExecuteBatch\",methodType=\"UNARY\",service=\"stargate.Stargate\"}";
               String requestsTotal =
-                  "grpc_server_requests_received_messages_total{method=\"ExecuteBatch\",methodType=\"UNARY\",service=\"stargate.Stargate\",}";
+                  "grpc_server_requests_received_messages_total{method=\"ExecuteBatch\",methodType=\"UNARY\",service=\"stargate.Stargate\"}";
 
               assertThat(getGrpcMetric(result, responsesTotal))
                   .hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
@@ -237,7 +237,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
                               .contains("statusCode=\"UNAUTHENTICATED\""));
 
               String durationCount =
-                  "grpc_server_processing_duration_seconds_count{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\",statusCode=\"UNAUTHENTICATED\",}";
+                  "grpc_server_processing_duration_seconds_count{method=\"ExecuteQuery\",methodType=\"UNARY\",service=\"stargate.Stargate\",statusCode=\"UNAUTHENTICATED\"}";
 
               assertThat(getGrpcMetric(result, durationCount))
                   .hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
@@ -246,7 +246,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
 
   private Optional<Double> getGrpcMetric(String body, String metric) {
     String regex =
-        String.format("(%s\\s*)(\\d+.\\d+)", metric)
+        String.format("(%s\\s*)(\\d+(?:\\.\\d+)?)", metric)
             .replace(",", "\\,")
             .replace("{", "\\{")
             .replace("}", "\\}");

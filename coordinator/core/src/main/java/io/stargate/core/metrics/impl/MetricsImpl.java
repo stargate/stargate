@@ -5,10 +5,10 @@ import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.prometheus.PrometheusConfig;
-import io.micrometer.prometheus.PrometheusMeterRegistry;
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.dropwizard.DropwizardExports;
+import io.micrometer.prometheusmetrics.PrometheusConfig;
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import io.prometheus.metrics.instrumentation.dropwizard.DropwizardExports;
+import io.prometheus.metrics.model.registry.PrometheusRegistry;
 import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
@@ -25,14 +25,17 @@ public class MetricsImpl implements Metrics, MetricsScraper {
   }
 
   private PrometheusMeterRegistry initPrometheusMeterRegistry(MetricRegistry metricRegistry) {
-    // note that we are adding the dropwizard exports to the CollectorRegistry that we will pass to
-    // the meter registry
+    // 1. Build the DropwizardExports using the builder API in client 1.x
     DropwizardExports dropwizardExports = new DropwizardExports(metricRegistry);
-    CollectorRegistry collectorRegistry = new CollectorRegistry();
-    collectorRegistry.register(dropwizardExports);
 
+    // 2. Create the new PrometheusRegistry (replaces CollectorRegistry) and register exports
+    PrometheusRegistry prometheusRegistry = new PrometheusRegistry();
+    prometheusRegistry.register(dropwizardExports);
+
+    // 3. Create the PrometheusMeterRegistry (from io.micrometer.prometheusmetrics)
     PrometheusMeterRegistry meterRegistry =
-        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, collectorRegistry, Clock.SYSTEM);
+        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
+
     MeterRegistryConfiguration.configure(meterRegistry);
     return meterRegistry;
   }
