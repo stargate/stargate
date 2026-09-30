@@ -198,9 +198,10 @@ jobs:
           cd dse-next/
           ./download_cassandra.sh
 
-      # downloads.datastax.com is no longer available; download from Artifactory and
-      # expose via DSE_DOWNLOAD_URL so CCM uses the local file instead of the old URL
-      - name: Download DSE tarball
+      # downloads.datastax.com is no longer available; download from Artifactory,
+      # extract, and point ccm.directory at the install dir so CcmBridge passes
+      # --install-dir to CCM instead of trying to download by version
+      - name: Download and extract DSE tarball
         if: ${{ matrix.backend == 'dse-68' || matrix.backend == 'dse-v4-68' }}
         env:
           TAAS_ARTIFACTORY_USERNAME: ${{ secrets.TAAS_ARTIFACTORY_USERNAME }}
@@ -208,13 +209,20 @@ jobs:
         run: |
           DSE_VERSION=6.8.63
           DSE_TAR=dse-${DSE_VERSION}-bin.tar.gz
+          DSE_INSTALL_DIR=/tmp/dse-${DSE_VERSION}
           curl -fL -u "${TAAS_ARTIFACTORY_USERNAME}:${TAAS_ARTIFACTORY_PASSWORD}" \
             "https://na.artifactory.swg-devops.com/artifactory/datastax-team-dse-packages-release-generic-local/${DSE_TAR}" \
             -o "/tmp/${DSE_TAR}"
-          echo "DSE_DOWNLOAD_URL=file:///tmp/${DSE_TAR}" >> $GITHUB_ENV
+          mkdir -p "${DSE_INSTALL_DIR}"
+          tar -xzf "/tmp/${DSE_TAR}" -C "${DSE_INSTALL_DIR}" --strip-components=1
+          echo "DSE_INSTALL_DIR=${DSE_INSTALL_DIR}" >> $GITHUB_ENV
 
       - name: Run Integration Tests
         run: |
           cd coordinator/
           ./mvnw -B -ntp ${{ matrix.build-profile }} clean install -DskipTests
-          ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests
+          CCM_DIR_PROP=""
+          if [ -n "$DSE_INSTALL_DIR" ]; then
+            CCM_DIR_PROP="-Dccm.directory=${DSE_INSTALL_DIR}"
+          fi
+          ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests ${CCM_DIR_PROP}
