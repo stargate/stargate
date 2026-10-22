@@ -5,7 +5,7 @@ the DSE (DataStax Enterprise cassandra) `6.8.x` version.
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `6.8.64`.
+The current Cassandra version this module depends on is `6.8.65`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `dse.version` property in the [pom.xml](pom.xml).
