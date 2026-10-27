@@ -1,5 +1,32 @@
 # Changelog
 
+## [v2.1.0-BETA-41](https://github.com/stargate/stargate/tree/v2.1.0-BETA-41) (2026-10-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-40...v2.1.0-BETA-41)
+
+**Merged pull requests:**
+
+- Bump snappy to 1.1.10.10 + adjust build pipeline according to artifactory migration [\#3233](https://github.com/stargate/stargate/pull/3233) ([MSpryszynski](https://github.com/MSpryszynski))
+- Bumping version for next v2.1 release [\#3222](https://github.com/stargate/stargate/pull/3222) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-40](https://github.com/stargate/stargate/tree/v2.1.0-BETA-40) (2026-06-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.51...v2.1.0-BETA-40)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.0 release [\#3226](https://github.com/stargate/stargate/pull/3226) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.51](https://github.com/stargate/stargate/tree/v2.0.51) (2026-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-39...v2.0.51)
+
+**Merged pull requests:**
+
+- Fix release workflow wrt Docker build [\#3225](https://github.com/stargate/stargate/pull/3225) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3223: update DSE to 6.8.64 [\#3224](https://github.com/stargate/stargate/pull/3224) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3219](https://github.com/stargate/stargate/pull/3219) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-39](https://github.com/stargate/stargate/tree/v2.1.0-BETA-39) (2026-04-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-38...v2.1.0-BETA-39)
