@@ -18,7 +18,6 @@
 package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import io.stargate.core.metrics.StargateMetricConstants;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +25,7 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.MultivaluedMap;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.ExtendedUriInfo;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 

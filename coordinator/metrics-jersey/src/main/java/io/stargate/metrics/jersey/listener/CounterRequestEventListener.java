@@ -19,7 +19,7 @@ package io.stargate.metrics.jersey.listener;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
 

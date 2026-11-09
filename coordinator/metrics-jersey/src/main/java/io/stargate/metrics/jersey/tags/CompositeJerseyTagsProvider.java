@@ -19,8 +19,8 @@ package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import java.util.List;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
 /** The composite {@link JerseyTagsProvider} that collects tags from multiple providers. */

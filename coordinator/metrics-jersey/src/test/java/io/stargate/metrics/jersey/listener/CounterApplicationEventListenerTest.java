@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.monitoring.ApplicationEvent;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;

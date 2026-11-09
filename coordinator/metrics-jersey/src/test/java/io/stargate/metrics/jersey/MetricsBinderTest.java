@@ -25,13 +25,13 @@ import static org.mockito.Mockito.when;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.jersey2.server.MetricsApplicationEventListener;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.config.MetricsListenerConfig;
 import io.stargate.metrics.jersey.listener.CounterApplicationEventListener;
 import java.util.Collections;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.glassfish.jersey.micrometer.server.MetricsApplicationEventListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

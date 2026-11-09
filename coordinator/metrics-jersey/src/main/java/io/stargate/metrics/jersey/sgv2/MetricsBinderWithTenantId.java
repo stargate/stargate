@@ -1,12 +1,12 @@
 package io.stargate.metrics.jersey.sgv2;
 
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.metrics.jersey.config.MetricsListenerConfig;
 import java.util.Collection;
 import java.util.List;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 
 /**
  * Extension of {@link MetricsBinder} which adds Tenant Id tag(s) extracted using {@link
