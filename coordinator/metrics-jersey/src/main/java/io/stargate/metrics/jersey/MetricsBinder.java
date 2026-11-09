@@ -18,8 +18,6 @@
 package io.stargate.metrics.jersey;
 
 import io.dropwizard.jersey.setup.JerseyEnvironment;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
-import io.micrometer.jersey2.server.MetricsApplicationEventListener;
 import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
@@ -39,6 +37,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
+import org.glassfish.jersey.micrometer.server.MetricsApplicationEventListener;
 
 /**
  * Class that registers all the needed metric application listeners to the Jersey environment for a

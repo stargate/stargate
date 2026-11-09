@@ -19,7 +19,7 @@ package io.stargate.metrics.jersey.tags;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
 /** Simple {@link JerseyTagsProvider} that always returns constant tags. */

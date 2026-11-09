@@ -2,10 +2,10 @@ package io.stargate.metrics.jersey.sgv2;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import java.util.Objects;
 import java.util.Optional;
 import javax.ws.rs.core.MultivaluedMap;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 

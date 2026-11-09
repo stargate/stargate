@@ -24,9 +24,9 @@ import static org.mockito.Mockito.when;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.jersey2.server.JerseyTagsProvider;
 import java.util.Arrays;
 import java.util.Collections;
+import org.glassfish.jersey.micrometer.server.JerseyTagsProvider;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

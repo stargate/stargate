@@ -80,8 +80,8 @@
     <jackson.version>2.18.8</jackson.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
-    <micrometer.version>1.8.2</micrometer.version>
-    <prometheus.version>0.12.0</prometheus.version>
+    <micrometer.version>1.17.2</micrometer.version>
+    <prometheus.version>0.16.0</prometheus.version>
     <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
        most of the time, but occasionally higher for CVEs
       -->
@@ -766,12 +766,7 @@
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-registry-prometheus</artifactId>
-        <version>${micrometer.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-jersey2</artifactId>
+        <artifactId>micrometer-registry-prometheus-simpleclient</artifactId>
         <version>${micrometer.version}</version>
       </dependency>
       <dependency>
