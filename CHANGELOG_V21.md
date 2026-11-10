@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-42](https://github.com/stargate/stargate/tree/v2.1.0-BETA-42) (2026-11-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-41...v2.1.0-BETA-42)
+
+**Merged pull requests:**
+
+- Upgrade micrometer to 1.17.2 without vendoring jersey2 [\#3235](https://github.com/stargate/stargate/pull/3235) ([JeremiahDJordan](https://github.com/JeremiahDJordan))
+- Bumping version for next v2.1 release [\#3234](https://github.com/stargate/stargate/pull/3234) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-41](https://github.com/stargate/stargate/tree/v2.1.0-BETA-41) (2026-10-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-40...v2.1.0-BETA-41)
