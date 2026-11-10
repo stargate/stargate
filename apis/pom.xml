@@ -84,6 +84,15 @@
   </properties>
   <dependencyManagement>
     <dependencies>
+      <!-- Testcontainers 1.21.3 (managed by Quarkus) cannot talk to Docker Engine 29+
+           (minimum API version 1.40); 1.21.4 fixes this. Must be imported before the Quarkus BOM. -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.21.4</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>${quarkus.platform.artifact-id}</artifactId>
