@@ -26,8 +26,8 @@ permissions:
 
 # global env vars, available in all jobs and steps
 env:
-  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-  ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+  TAAS_ARTIFACTORY_USERNAME: ${{ secrets.TAAS_ARTIFACTORY_USERNAME }}
+  TAAS_ARTIFACTORY_PASSWORD: ${{ secrets.TAAS_ARTIFACTORY_PASSWORD }}
   MAVEN_OPTS: '-Xmx4g'
 
 jobs:
@@ -90,30 +90,25 @@ jobs:
       - name: Setup Maven
         run: |
           mkdir -p ~/.m2
+          # Route only the private DSE repo IDs (declared in coordinator/persistence-dse-*/pom.xml) through the IBM TaaS Artifactory.
+          # Central and other public repos are not mirrored, so open source builds keep working without credentials.
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-dse</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-public</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
+                <id>taas-mirror</id>
+                <username>${TAAS_ARTIFACTORY_USERNAME}</username>
+                <password>${TAAS_ARTIFACTORY_PASSWORD}</password>
               </server>
             </servers>
+            <mirrors>
+              <mirror>
+                <id>taas-mirror</id>
+                <name>TaaS DataStax Virtual (private DSE repos only)</name>
+                <url>https://na.artifactory.swg-devops.com/artifactory/datastax-team-nosql-dse-maven-virtual</url>
+                <mirrorOf>artifactory-snapshots,artifactory-releases,artifactory-dse,artifactory-public</mirrorOf>
+              </mirror>
+            </mirrors>
           </settings>
           EOF
 
@@ -165,30 +160,25 @@ jobs:
       - name: Setup Maven
         run: |
           mkdir -p ~/.m2
+          # Route only the private DSE repo IDs (declared in coordinator/persistence-dse-*/pom.xml) through the IBM TaaS Artifactory.
+          # Central and other public repos are not mirrored, so open source builds keep working without credentials.
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-dse</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-public</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
+                <id>taas-mirror</id>
+                <username>${TAAS_ARTIFACTORY_USERNAME}</username>
+                <password>${TAAS_ARTIFACTORY_PASSWORD}</password>
               </server>
             </servers>
+            <mirrors>
+              <mirror>
+                <id>taas-mirror</id>
+                <name>TaaS DataStax Virtual (private DSE repos only)</name>
+                <url>https://na.artifactory.swg-devops.com/artifactory/datastax-team-nosql-dse-maven-virtual</url>
+                <mirrorOf>artifactory-snapshots,artifactory-releases,artifactory-dse,artifactory-public</mirrorOf>
+              </mirror>
+            </mirrors>
           </settings>
           EOF
 
@@ -248,6 +238,8 @@ jobs:
           SONATYPE_CENTRAL_TOKEN: ${{ secrets.SONATYPE_CENTRAL_TOKEN }}
         run: |
           mkdir -p ~/.m2
+          # Route only the private DSE repo IDs (declared in coordinator/persistence-dse-*/pom.xml) through the IBM TaaS Artifactory.
+          # Central and other public repos are not mirrored, so open source builds keep working without credentials.
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
@@ -257,26 +249,19 @@ jobs:
                 <password>${SONATYPE_CENTRAL_TOKEN}</password>
               </server>
               <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-dse</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-public</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
+                <id>taas-mirror</id>
+                <username>${TAAS_ARTIFACTORY_USERNAME}</username>
+                <password>${TAAS_ARTIFACTORY_PASSWORD}</password>
               </server>
             </servers>
+            <mirrors>
+              <mirror>
+                <id>taas-mirror</id>
+                <name>TaaS DataStax Virtual (private DSE repos only)</name>
+                <url>https://na.artifactory.swg-devops.com/artifactory/datastax-team-nosql-dse-maven-virtual</url>
+                <mirrorOf>artifactory-snapshots,artifactory-releases,artifactory-dse,artifactory-public</mirrorOf>
+              </mirror>
+            </mirrors>
           </settings>
           EOF
 
@@ -331,30 +316,25 @@ jobs:
       - name: Setup Maven
         run: |
           mkdir -p ~/.m2
+          # Route only the private DSE repo IDs (declared in coordinator/persistence-dse-*/pom.xml) through the IBM TaaS Artifactory.
+          # Central and other public repos are not mirrored, so open source builds keep working without credentials.
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-dse</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-public</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
+                <id>taas-mirror</id>
+                <username>${TAAS_ARTIFACTORY_USERNAME}</username>
+                <password>${TAAS_ARTIFACTORY_PASSWORD}</password>
               </server>
             </servers>
+            <mirrors>
+              <mirror>
+                <id>taas-mirror</id>
+                <name>TaaS DataStax Virtual (private DSE repos only)</name>
+                <url>https://na.artifactory.swg-devops.com/artifactory/datastax-team-nosql-dse-maven-virtual</url>
+                <mirrorOf>artifactory-snapshots,artifactory-releases,artifactory-dse,artifactory-public</mirrorOf>
+              </mirror>
+            </mirrors>
           </settings>
           EOF
 
@@ -541,30 +521,25 @@ jobs:
       - name: Setup Maven
         run: |
           mkdir -p ~/.m2
+          # Route only the private DSE repo IDs (declared in coordinator/persistence-dse-*/pom.xml) through the IBM TaaS Artifactory.
+          # Central and other public repos are not mirrored, so open source builds keep working without credentials.
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>artifactory-snapshots</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-releases</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-dse</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
-              </server>
-              <server>
-                <id>artifactory-public</id>
-                <username>${ARTIFACTORY_USERNAME}</username>
-                <password>${ARTIFACTORY_PASSWORD}</password>
+                <id>taas-mirror</id>
+                <username>${TAAS_ARTIFACTORY_USERNAME}</username>
+                <password>${TAAS_ARTIFACTORY_PASSWORD}</password>
               </server>
             </servers>
+            <mirrors>
+              <mirror>
+                <id>taas-mirror</id>
+                <name>TaaS DataStax Virtual (private DSE repos only)</name>
+                <url>https://na.artifactory.swg-devops.com/artifactory/datastax-team-nosql-dse-maven-virtual</url>
+                <mirrorOf>artifactory-snapshots,artifactory-releases,artifactory-dse,artifactory-public</mirrorOf>
+              </mirror>
+            </mirrors>
           </settings>
           EOF
 
